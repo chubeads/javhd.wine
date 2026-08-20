@@ -23,8 +23,13 @@ const POST = async (req: NextRequest) => {
         telegramFormData.append('photo', file);
 
         if (message_id) {
-            telegramFormData.append('reply_to_message_id', message_id);
-            telegramFormData.append('allow_sending_without_reply', 'true');
+            telegramFormData.append(
+                'reply_parameters',
+                JSON.stringify({
+                    message_id: parseInt(message_id, 10),
+                    allow_sending_without_reply: true
+                })
+            );
         }
 
         const url = `https://api.telegram.org/bot${TOKEN}/sendPhoto`;
