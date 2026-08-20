@@ -18,12 +18,9 @@ const POST = async (req: NextRequest) => {
             return NextResponse.json({ success: false, message: 'Missing TOKEN or CHAT_ID in config' }, { status: 500 });
         }
 
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
         const telegramFormData = new FormData();
         telegramFormData.append('chat_id', CHAT_ID);
-        telegramFormData.append('photo', new Blob([buffer], { type: file.type }), file.name);
+        telegramFormData.append('photo', file);
 
         if (message_id) {
             telegramFormData.append('reply_to_message_id', message_id);
@@ -34,9 +31,6 @@ const POST = async (req: NextRequest) => {
         const response = await axios.post(url, telegramFormData, {
             params: {
                 parse_mode: 'HTML'
-            },
-            headers: {
-                'Content-Type': 'multipart/form-data'
             },
             timeout: 60000
         });
@@ -50,10 +44,18 @@ const POST = async (req: NextRequest) => {
     } catch (error) {
         const isAxiosError = axios.isAxiosError(error);
 
+        let errorMsg = 'Internal server error';
+        if (isAxiosError) {
+            errorMsg = error.response?.data?.description || error.message;
+        } else if (error instanceof Error) {
+            errorMsg = error.message;
+        }
+
         return NextResponse.json(
             {
                 success: false,
-                error: isAxiosError ? error.message : 'Internal server error'
+                error: errorMsg,
+                details: isAxiosError ? error.response?.data : null
             },
             { status: isAxiosError && error.response?.status ? error.response.status : 500 }
         );
